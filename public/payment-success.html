@@ -1,0 +1,102 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Payment Successful - Goodpass Partner Demo</title>
+    <link
+      href="https://cdn.jsdelivr.net/npm/tailwindcss@2.2.19/dist/tailwind.min.css"
+      rel="stylesheet"
+    />
+  </head>
+  <body class="bg-green-50">
+    <div class="container mx-auto px-4 py-8 max-w-2xl">
+      <div class="bg-white rounded-lg shadow-md p-8 text-center">
+        <div class="text-6xl mb-4">✅</div>
+        <h1 class="text-3xl font-bold text-green-800 mb-4">
+          Payment Successful!
+        </h1>
+        <p class="text-gray-600 mb-6">
+          Your payment has been processed successfully.
+        </p>
+
+        <div id="payment-details" class="bg-green-50 p-4 rounded-lg mb-6">
+          <h3 class="font-semibold mb-2">Payment Details:</h3>
+          <div id="details-content" class="text-sm text-gray-700">
+            Verifying payment details...
+          </div>
+        </div>
+
+        <div class="space-x-4">
+          <button
+            onclick="window.close()"
+            class="bg-green-600 text-white px-6 py-2 rounded-md hover:bg-green-700"
+          >
+            Close Window
+          </button>
+          <a
+            href="index.html"
+            class="bg-gray-600 text-white px-6 py-2 rounded-md hover:bg-gray-700 inline-block"
+          >
+            Back to Demo
+          </a>
+        </div>
+      </div>
+    </div>
+
+    <script>
+      // Get session ID from URL parameters
+      const urlParams = new URLSearchParams(window.location.search);
+      const sessionId = urlParams.get('session_id');
+      const paymentIntent = urlParams.get('payment_intent');
+
+      if (sessionId) {
+        // Check session status
+        fetch(
+          `http://localhost:5010/api/v1/payments/hosted/session/${sessionId}`
+        )
+          .then((response) => response.json())
+          .then((data) => {
+            const detailsContent = document.getElementById('details-content');
+            if (data.status === 'complete') {
+              detailsContent.innerHTML = `
+                            <div><strong>Session ID:</strong> ${
+                              data.sessionId
+                            }</div>
+                            <div><strong>Order Code:</strong> ${
+                              data.orderCode
+                            }</div>
+                            <div><strong>Amount:</strong> ${data.amount} ${
+                data.currency
+              }</div>
+                            <div><strong>Payment Intent:</strong> ${
+                              data.paymentIntentId || 'N/A'
+                            }</div>
+                            <div><strong>Status:</strong> ${data.status}</div>
+                        `;
+            } else {
+              detailsContent.innerHTML = `
+                            <div class="text-yellow-700">
+                                <strong>Warning:</strong> Payment status is "${data.status}". 
+                                Please contact support if this is unexpected.
+                            </div>
+                        `;
+            }
+          })
+          .catch((error) => {
+            document.getElementById('details-content').innerHTML = `
+                        <div class="text-red-700">
+                            Error verifying payment: ${error.message}
+                        </div>
+                    `;
+          });
+      } else {
+        document.getElementById('details-content').innerHTML = `
+                <div class="text-red-700">
+                    No session ID found in URL parameters.
+                </div>
+            `;
+      }
+    </script>
+  </body>
+</html>

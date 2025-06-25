@@ -1,0 +1,11 @@
+{
+  "orderCode": "ORD_TEST_123",
+  "paymentMethod": {
+    "type": "card",
+    "token": "pm_card_visa",
+    "cardBrand": "visa",
+    "cardCountry": "MY",
+    "last4": "4242"
+  },
+  "returnUrl": "https://partner.example.com/payment/return"
+}

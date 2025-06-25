@@ -1,0 +1,252 @@
+### Partner Payment API Quick Tests
+### Use this file with REST Client extension in VS Code or similar tools
+### 
+### Fixed Decline Test Cards (using Stripe PaymentMethod tokens):
+### - pm_card_visa_chargeDeclined: Generic decline
+### - pm_card_visa_chargeDeclinedInsufficientFunds: Insufficient funds decline  
+### - pm_card_visa_chargeDeclinedExpiredCard: Expired card decline
+### - pm_card_visa_chargeDeclinedIncorrectCvc: Incorrect CVC decline
+### - pm_card_visa_chargeDeclinedProcessingError: Processing error decline
+###
+### Note: Using proper Stripe PaymentMethod tokens instead of raw card numbers
+### for better security and compliance with Stripe's recommendations.
+
+### Variables
+@baseUrl = http://localhost:5010/api/v1
+
+### 1. Test Demo Scenarios Endpoint
+GET {{baseUrl}}/demo/scenarios
+
+###
+
+### ================================
+### DIRECT PAYMENTS
+### ================================
+### Use when you control payment experience with Stripe.js
+
+### 2. Test Successful Direct Payment (No 3D Secure)
+POST {{baseUrl}}/payments/direct/process
+Content-Type: application/json
+
+{
+  "orderCode": "GP798B4D8A8D",
+  "paymentMethod": {
+    "type": "card",
+    "token": "pm_card_visa",
+    "cardBrand": "visa",
+    "cardCountry": "MY",
+    "last4": "4242"
+  },
+  "returnUrl": "http://localhost:5010/api/v1/payments/return",
+  "clientIp": "192.168.1.1",
+  "userAgent": "Partner-Test-Client/1.0"
+}
+
+###
+
+### 3. Test 3D Secure Required Direct Payment
+POST {{baseUrl}}/payments/direct/process
+Content-Type: application/json
+
+{
+  "orderCode": "GP798B4D8A8D",
+  "paymentMethod": {
+    "type": "card",
+    "token": "pm_card_threeDSecure2Required",
+    "cardBrand": "visa",
+    "cardCountry": "MY",
+    "last4": "4242"
+  },
+  "returnUrl": "http://localhost:5010/api/v1/payments/return",
+  "clientIp": "192.168.1.1",
+  "userAgent": "Partner-Test-Client/1.0"
+}
+
+###
+
+### 4. Test Declined Card Direct Payment
+POST {{baseUrl}}/payments/direct/process
+Content-Type: application/json
+
+{
+  "orderCode": "GP798B4D8A8D",
+  "paymentMethod": {
+    "type": "card",
+    "token": "pm_card_visa_chargeDeclined",
+    "cardBrand": "visa",
+    "cardCountry": "MY",
+    "last4": "4242"
+  },
+  "returnUrl": "http://localhost:5010/api/v1/payments/return",
+  "clientIp": "192.168.1.1",
+  "userAgent": "Partner-Test-Client/1.0"
+}
+
+###
+
+### 4b. Test Insufficient Funds Decline
+POST {{baseUrl}}/payments/direct/process
+Content-Type: application/json
+
+{
+  "orderCode": "GP798B4D8A8D",
+  "paymentMethod": {
+    "type": "card",
+    "token": "pm_card_visa_chargeDeclinedInsufficientFunds",
+    "cardBrand": "visa",
+    "cardCountry": "MY",
+    "last4": "4242"
+  },
+  "returnUrl": "http://localhost:5010/api/v1/payments/return",
+  "clientIp": "192.168.1.1",
+  "userAgent": "Partner-Test-Client/1.0"
+}
+
+###
+
+### 4c. Test Expired Card Decline
+POST {{baseUrl}}/payments/direct/process
+Content-Type: application/json
+
+{
+  "orderCode": "GP798B4D8A8D",
+  "paymentMethod": {
+    "type": "card",
+    "token": "pm_card_visa_chargeDeclinedExpiredCard",
+    "cardBrand": "visa",
+    "cardCountry": "MY",
+    "last4": "4242"
+  },
+  "returnUrl": "http://localhost:5010/api/v1/payments/return",
+  "clientIp": "192.168.1.1",
+  "userAgent": "Partner-Test-Client/1.0"
+}
+
+###
+
+### 5. Check Direct Payment Status (Use payment intent ID from any response above)
+GET {{baseUrl}}/payments/direct/status/pi_3Rdt6P01ZCKQr9x501BcdqTU
+
+###
+
+### ================================
+### HOSTED PAYMENTS
+### ================================
+### Use when you want Stripe to handle the payment experience
+
+### 6. Create Hosted Payment Session
+POST {{baseUrl}}/payments/hosted/create-session
+Content-Type: application/json
+
+{
+  "orderCode": "GP798B4D8A8D",
+  "successUrl": "http://localhost:5010/success",
+  "cancelUrl": "http://localhost:5010/cancel",
+  "customerEmail": "customer@example.com"
+}
+
+###
+
+### 7. Get Hosted Payment Session Status (Use session ID from create-session response)
+GET {{baseUrl}}/payments/hosted/session/cs_test_a1fU23cONH3nTjgQo3zTh1ZPlalaKFskPjZwDa0WE9XzjU6mxdqNggP4hM
+
+###
+
+### ================================
+### SHARED RESOURCES
+### ================================
+
+### 8. Get Payment History
+GET {{baseUrl}}/payments/history?page=1&limit=10
+
+###
+
+### 9. Get Payment History with Filters
+GET {{baseUrl}}/payments/history?page=1&limit=10&status=succeeded&dateFrom=2024-01-01T00:00:00Z
+
+###
+
+### ================================
+### DEMO ENDPOINTS (for testing)
+### ================================
+
+### 10. Test Demo Payment with Success Scenario
+POST {{baseUrl}}/demo/test-payment
+Content-Type: application/json
+
+{
+  "scenario": "success",
+  "orderCode": "GP798B4D8A8D"
+}
+
+###
+
+### 11. Test Demo Payment with 3D Secure Scenario
+POST {{baseUrl}}/demo/test-payment
+Content-Type: application/json
+
+{
+  "scenario": "threeDSecure",
+  "orderCode": "GP798B4D8A8D"
+}
+
+###
+
+### 12. Test Demo Payment with Declined Scenario
+POST {{baseUrl}}/demo/test-payment
+Content-Type: application/json
+
+{
+  "scenario": "declined",
+  "orderCode": "GP798B4D8A8D",
+  "paymentMethod": {
+    "type": "card",
+    "token": "pm_card_visa_chargeDeclined",
+    "cardBrand": "visa",
+    "last4": "4242"
+  }
+}
+
+###
+
+### 13. Get Integration Guide
+GET {{baseUrl}}/demo/integration-guide
+
+###
+
+### ================================
+### TROUBLESHOOTING
+### ================================
+### 
+### If hosted payments return sessionId but no checkoutUrl:
+### 1. Check Goodpass API logs for Stripe integration errors
+### 2. Verify Stripe API keys are configured correctly  
+### 3. Ensure products service RabbitMQ connection is working
+### 4. Contact Goodpass API support with sessionId for investigation
+###
+### Expected hosted payment response format:
+### {
+###   "success": true,
+###   "data": {
+###     "sessionId": "cs_test_...",
+###     "url": "https://checkout.stripe.com/pay/cs_test_...",
+###     "order": {
+###       "orderCode": "GP798B4D8A8D",
+###       "totalAmount": 2564980,
+###       "currency": "VND"
+###     }
+###   }
+### }
+
+### ================================
+### NOTES
+### ================================
+### 
+### Key Changes from v1 to v2:
+### 1. Removed /payments/complete endpoint (webhooks handle completion)
+### 2. Organized endpoints into logical groups:
+###    - /payments/direct/* for Stripe.js integration
+###    - /payments/hosted/* for Stripe Checkout
+###    - /payments/* for shared resources
+### 3. 3D Secure flow now relies on webhooks instead of manual completion
+### 4. Status checking updated to new endpoint paths

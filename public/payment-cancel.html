@@ -1,0 +1,49 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Payment Cancelled - Goodpass Partner Demo</title>
+    <link
+      href="https://cdn.jsdelivr.net/npm/tailwindcss@2.2.19/dist/tailwind.min.css"
+      rel="stylesheet"
+    />
+  </head>
+  <body class="bg-yellow-50">
+    <div class="container mx-auto px-4 py-8 max-w-2xl">
+      <div class="bg-white rounded-lg shadow-md p-8 text-center">
+        <div class="text-6xl mb-4">❌</div>
+        <h1 class="text-3xl font-bold text-yellow-800 mb-4">
+          Payment Cancelled
+        </h1>
+        <p class="text-gray-600 mb-6">
+          You cancelled the payment process. No charges have been made.
+        </p>
+
+        <div class="bg-yellow-50 p-4 rounded-lg mb-6">
+          <h3 class="font-semibold mb-2">What happened?</h3>
+          <div class="text-sm text-gray-700">
+            <div>• You closed the payment window</div>
+            <div>• You clicked the back button</div>
+            <div>• You chose to cancel the transaction</div>
+          </div>
+        </div>
+
+        <div class="space-x-4">
+          <a
+            href="index.html"
+            class="bg-blue-600 text-white px-6 py-2 rounded-md hover:bg-blue-700 inline-block"
+          >
+            Try Again
+          </a>
+          <button
+            onclick="window.close()"
+            class="bg-gray-600 text-white px-6 py-2 rounded-md hover:bg-gray-700"
+          >
+            Close Window
+          </button>
+        </div>
+      </div>
+    </div>
+  </body>
+</html>

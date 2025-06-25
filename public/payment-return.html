@@ -1,0 +1,176 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Payment Authentication Complete - Goodpass Partner Demo</title>
+    <link
+      href="https://cdn.jsdelivr.net/npm/tailwindcss@2.2.19/dist/tailwind.min.css"
+      rel="stylesheet"
+    />
+  </head>
+  <body class="bg-blue-50">
+    <div class="container mx-auto px-4 py-8 max-w-2xl">
+      <div class="bg-white rounded-lg shadow-md p-8 text-center">
+        <div class="text-6xl mb-4">🔐</div>
+        <h1 class="text-3xl font-bold text-blue-800 mb-4">
+          Authentication Complete
+        </h1>
+        <p class="text-gray-600 mb-6">
+          You have completed the 3D Secure authentication. Checking payment
+          status...
+        </p>
+
+        <div id="payment-status" class="bg-blue-50 p-4 rounded-lg mb-6">
+          <h3 class="font-semibold mb-2">Payment Status:</h3>
+          <div id="status-content" class="text-sm text-gray-700">
+            <div class="animate-pulse">Verifying payment status...</div>
+          </div>
+        </div>
+
+        <div class="space-x-4">
+          <button
+            id="check-status"
+            class="bg-blue-600 text-white px-6 py-2 rounded-md hover:bg-blue-700"
+          >
+            Check Status Again
+          </button>
+          <a
+            href="index.html"
+            class="bg-gray-600 text-white px-6 py-2 rounded-md hover:bg-gray-700 inline-block"
+          >
+            Back to Demo
+          </a>
+        </div>
+      </div>
+    </div>
+
+    <script>
+      // Get payment intent ID from URL parameters
+      const urlParams = new URLSearchParams(window.location.search);
+      const paymentIntentId =
+        urlParams.get('payment_intent') || urlParams.get('payment_intent_id');
+      let checkInterval;
+
+      function checkPaymentStatus() {
+        if (!paymentIntentId) {
+          document.getElementById('status-content').innerHTML = `
+                    <div class="text-red-700">
+                        <strong>Error:</strong> No payment intent ID found in URL parameters.
+                        <br>Expected parameter: payment_intent or payment_intent_id
+                    </div>
+                `;
+          return;
+        }
+
+        fetch(
+          `http://localhost:5010/api/v1/payments/direct/status/${paymentIntentId}`
+        )
+          .then((response) => {
+            if (!response.ok) {
+              throw new Error(
+                `HTTP ${response.status}: ${response.statusText}`
+              );
+            }
+            return response.json();
+          })
+          .then((data) => {
+            const statusContent = document.getElementById('status-content');
+
+            if (data.status === 'succeeded') {
+              statusContent.innerHTML = `
+                            <div class="text-green-700">
+                                <div class="text-2xl mb-2">✅ Payment Successful!</div>
+                                <div><strong>Payment Intent:</strong> ${
+                                  data.paymentIntentId
+                                }</div>
+                                <div><strong>Order Code:</strong> ${
+                                  data.orderCode
+                                }</div>
+                                <div><strong>Amount:</strong> ${data.amount} ${
+                data.currency
+              }</div>
+                                <div><strong>Completed:</strong> ${new Date(
+                                  data.completedAt
+                                ).toLocaleString()}</div>
+                            </div>
+                        `;
+              // Clear the interval since payment is complete
+              if (checkInterval) {
+                clearInterval(checkInterval);
+              }
+            } else if (data.status === 'failed') {
+              statusContent.innerHTML = `
+                            <div class="text-red-700">
+                                <div class="text-2xl mb-2">❌ Payment Failed</div>
+                                <div><strong>Payment Intent:</strong> ${data.paymentIntentId}</div>
+                                <div><strong>Order Code:</strong> ${data.orderCode}</div>
+                                <div><strong>Status:</strong> ${data.status}</div>
+                            </div>
+                        `;
+              if (checkInterval) {
+                clearInterval(checkInterval);
+              }
+            } else if (data.status === 'requires_action') {
+              statusContent.innerHTML = `
+                            <div class="text-yellow-700">
+                                <div class="text-2xl mb-2">🔐 Additional Authentication Required</div>
+                                <div><strong>Payment Intent:</strong> ${data.paymentIntentId}</div>
+                                <div><strong>Order Code:</strong> ${data.orderCode}</div>
+                                <div><strong>Status:</strong> ${data.status}</div>
+                                <div class="mt-2">
+                                    <a href="${data.threeDSecure?.url}" 
+                                       class="text-blue-600 hover:text-blue-800 underline">
+                                       Complete Authentication
+                                    </a>
+                                </div>
+                            </div>
+                        `;
+            } else {
+              statusContent.innerHTML = `
+                            <div class="text-blue-700">
+                                <div class="text-2xl mb-2">⏳ Processing Payment</div>
+                                <div><strong>Payment Intent:</strong> ${data.paymentIntentId}</div>
+                                <div><strong>Order Code:</strong> ${data.orderCode}</div>
+                                <div><strong>Status:</strong> ${data.status}</div>
+                                <div class="mt-2 text-sm">Please wait while we process your payment...</div>
+                            </div>
+                        `;
+            }
+          })
+          .catch((error) => {
+            document.getElementById('status-content').innerHTML = `
+                        <div class="text-red-700">
+                            <div class="text-2xl mb-2">❌ Error</div>
+                            <div><strong>Unable to verify payment status:</strong></div>
+                            <div class="text-sm mt-1">${error.message}</div>
+                            <div class="text-sm mt-2">
+                                <strong>Payment Intent ID:</strong> ${paymentIntentId}
+                            </div>
+                        </div>
+                    `;
+          });
+      }
+
+      // Check status on page load
+      document.addEventListener('DOMContentLoaded', () => {
+        checkPaymentStatus();
+
+        // Set up periodic checking for processing payments
+        checkInterval = setInterval(checkPaymentStatus, 3000);
+
+        // Stop checking after 2 minutes
+        setTimeout(() => {
+          if (checkInterval) {
+            clearInterval(checkInterval);
+          }
+        }, 120000);
+      });
+
+      // Manual status check button
+      document
+        .getElementById('check-status')
+        .addEventListener('click', checkPaymentStatus);
+    </script>
+  </body>
+</html>

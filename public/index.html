@@ -1,0 +1,768 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Goodpass Partner Payment Integration Demo</title>
+
+    <!-- Stripe.js (loaded conditionally) -->
+    <script src="https://js.stripe.com/v3/"></script>
+
+    <!-- Modern CSS Framework -->
+    <link
+      href="https://cdn.jsdelivr.net/npm/tailwindcss@2.2.19/dist/tailwind.min.css"
+      rel="stylesheet"
+    />
+
+    <!-- Custom Styles -->
+    <style>
+      .stripe-element {
+        padding: 10px 14px;
+        border: 1px solid #d1d5db;
+        border-radius: 0.375rem;
+        background-color: white;
+        transition: border-color 0.15s ease-in-out;
+      }
+
+      .stripe-element:focus {
+        border-color: #3b82f6;
+        outline: none;
+        box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.1);
+      }
+
+      .loading {
+        opacity: 0.6;
+        pointer-events: none;
+      }
+
+      .status-message {
+        padding: 1rem;
+        border-radius: 0.5rem;
+        margin: 1rem 0;
+      }
+
+      .status-success {
+        background-color: #d1fae5;
+        border: 1px solid #10b981;
+        color: #065f46;
+      }
+
+      .status-error {
+        background-color: #fee2e2;
+        border: 1px solid #ef4444;
+        color: #991b1b;
+      }
+
+      .status-warning {
+        background-color: #fef3c7;
+        border: 1px solid #f59e0b;
+        color: #92400e;
+      }
+
+      .status-info {
+        background-color: #dbeafe;
+        border: 1px solid #3b82f6;
+        color: #1e40af;
+      }
+
+      .disabled-section {
+        opacity: 0.5;
+        pointer-events: none;
+        background-color: #f9fafb;
+      }
+    </style>
+  </head>
+  <body class="bg-gray-50">
+    <div class="container mx-auto px-4 py-8 max-w-4xl">
+      <!-- Header -->
+      <div class="text-center mb-8">
+        <h1 class="text-4xl font-bold text-gray-900 mb-4">
+          🎯 Goodpass Partner Payment Integration Demo
+        </h1>
+        <p class="text-lg text-gray-600">
+          Flexible payment integration: Direct with Stripe.js or Hosted Checkout
+          for maximum simplicity
+        </p>
+      </div>
+
+      <!-- Partner Configuration -->
+      <div class="bg-white rounded-lg shadow-md p-6 mb-8">
+        <h2 class="text-2xl font-semibold mb-4">🔧 Partner Configuration</h2>
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+          <div>
+            <label class="block text-sm font-medium text-gray-700 mb-2"
+              >Order Code</label
+            >
+            <input
+              type="text"
+              id="order-code"
+              class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+              placeholder="e.g., GP798B4D8A8D"
+              value="GP798B4D8A8D"
+            />
+          </div>
+          <div>
+            <label class="block text-sm font-medium text-gray-700 mb-2"
+              >Customer Email</label
+            >
+            <input
+              type="email"
+              id="customer-email"
+              class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+              placeholder="customer@example.com"
+            />
+          </div>
+          <div class="col-span-full">
+            <label class="block text-sm font-medium text-gray-700 mb-2"
+              >API Key</label
+            >
+            <input
+              id="api-key"
+              class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+              placeholder="Enter your Goodpass API key"
+            />
+          </div>
+        </div>
+        <div class="mt-4">
+          <button
+            id="fetch-config"
+            class="bg-blue-600 text-white px-4 py-2 rounded-md hover:bg-blue-700"
+          >
+            🔄 Initialize Payment Integration
+          </button>
+        </div>
+      </div>
+
+      <!-- Status Messages -->
+      <div id="status-container"></div>
+
+      <!-- Partner Status Display -->
+      <div
+        id="partner-status"
+        class="bg-white rounded-lg shadow-md p-6 mb-8"
+        style="display: none"
+      >
+        <h2 class="text-2xl font-semibold mb-4">📋 Integration Status</h2>
+        <div id="partner-info"></div>
+      </div>
+
+      <!-- Payment Options -->
+      <div class="grid grid-cols-1 lg:grid-cols-2 gap-8">
+        <!-- Direct Payments (Stripe.js) - Direct with SAQ-A Compliance -->
+        <div
+          id="direct-payments-section"
+          class="bg-white rounded-lg shadow-md p-6"
+        >
+          <div class="flex items-center mb-4">
+            <span class="text-2xl mr-2">🎯</span>
+            <h2 class="text-2xl font-semibold">Direct Payments</h2>
+            <span
+              id="direct-pci-badge"
+              class="ml-2 px-2 py-1 text-xs bg-green-100 text-green-800 rounded-full"
+              >SAQ-A Compliant</span
+            >
+          </div>
+          <p class="text-gray-600 mb-4">
+            Use Stripe.js for custom payment UI. Card data never touches your
+            servers, requiring only SAQ-A compliance (no certification needed).
+          </p>
+
+          <!-- Payment Form -->
+          <form id="direct-payment-form">
+            <div class="mb-4">
+              <label class="block text-sm font-medium text-gray-700 mb-2"
+                >Card Details</label
+              >
+              <div id="card-element" class="stripe-element">
+                <!-- Stripe Elements will mount here -->
+              </div>
+              <div id="card-errors" class="text-red-600 text-sm mt-2"></div>
+            </div>
+
+            <div class="mb-4">
+              <label class="block text-sm font-medium text-gray-700 mb-2"
+                >Return URL (for 3D Secure)</label
+              >
+              <input
+                type="url"
+                id="return-url"
+                class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                value="http://localhost:5010/payment-return.html"
+              />
+            </div>
+
+            <button
+              type="submit"
+              id="direct-pay-button"
+              class="w-full bg-blue-600 text-white py-2 px-4 rounded-md hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500 disabled:opacity-50"
+            >
+              <span id="direct-button-text">Process Direct Payment</span>
+              <span id="direct-spinner" class="hidden ml-2">🔄</span>
+            </button>
+          </form>
+
+          <!-- Benefits -->
+          <div class="mt-4 p-3 bg-green-50 rounded">
+            <h4 class="font-medium text-sm mb-2">Direct Architecture:</h4>
+            <div class="text-xs text-gray-600">
+              <div>🎨 Full control over payment UI/UX</div>
+              <div>🔒 Card data handled securely by Stripe.js</div>
+              <div>
+                📝 Only SAQ-A compliance required (simple self-assessment)
+              </div>
+              <div>🔑 Goodpass provides publishable key via API</div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Hosted Payments (Stripe Checkout) - Maximum Simplicity -->
+        <div
+          id="hosted-payments-section"
+          class="bg-white rounded-lg shadow-md p-6"
+        >
+          <div class="flex items-center mb-4">
+            <span class="text-2xl mr-2">🛒</span>
+            <h2 class="text-2xl font-semibold">Hosted Payments</h2>
+            <span
+              id="hosted-pci-badge"
+              class="ml-2 px-2 py-1 text-xs bg-blue-100 text-blue-800 rounded-full"
+              >Zero Integration Effort</span
+            >
+          </div>
+          <p class="text-gray-600 mb-4">
+            Stripe Checkout handles everything. Minimal integration effort with
+            automatic PCI compliance.
+          </p>
+
+          <!-- Hosted Payment Form -->
+          <form id="hosted-payment-form">
+            <div class="mb-4">
+              <label class="block text-sm font-medium text-gray-700 mb-2"
+                >Success URL</label
+              >
+              <input
+                type="url"
+                id="success-url"
+                class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                value="http://localhost:5010/payment-success.html"
+              />
+            </div>
+
+            <div class="mb-4">
+              <label class="block text-sm font-medium text-gray-700 mb-2"
+                >Cancel URL</label
+              >
+              <input
+                type="url"
+                id="cancel-url"
+                class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                value="http://localhost:5010/payment-cancel.html"
+              />
+            </div>
+
+            <button
+              type="submit"
+              id="hosted-pay-button"
+              class="w-full bg-green-600 text-white py-2 px-4 rounded-md hover:bg-green-700 focus:outline-none focus:ring-2 focus:ring-green-500 disabled:opacity-50"
+            >
+              <span id="hosted-button-text">Create Checkout Session</span>
+              <span id="hosted-spinner" class="hidden ml-2">🔄</span>
+            </button>
+          </form>
+
+          <!-- Benefits -->
+          <div class="mt-4 p-3 bg-blue-50 rounded">
+            <h4 class="font-medium text-sm mb-2">
+              Hosted Checkout Architecture:
+            </h4>
+            <div class="text-xs text-gray-600">
+              <div>🚀 Fastest integration (minutes, not days)</div>
+              <div>🔒 Zero card data exposure to your systems</div>
+              <div>🛡️ Automatic PCI compliance handled by Stripe</div>
+              <div>🌍 Built-in global payment methods</div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Payment Status Checker -->
+      <div class="bg-white rounded-lg shadow-md p-6 mt-8">
+        <h2 class="text-2xl font-semibold mb-4">📊 Payment Status Checker</h2>
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+          <div>
+            <label class="block text-sm font-medium text-gray-700 mb-2"
+              >Direct Payment Intent ID</label
+            >
+            <div class="flex">
+              <input
+                type="text"
+                id="payment-intent-id"
+                class="flex-1 px-3 py-2 border border-gray-300 rounded-l-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                placeholder="pi_3RVILh01ZCKQr9x503z3uhpc"
+              />
+              <button
+                type="button"
+                id="check-direct-status"
+                class="bg-blue-600 text-white px-4 py-2 rounded-r-md hover:bg-blue-700"
+              >
+                Check
+              </button>
+            </div>
+          </div>
+          <div>
+            <label class="block text-sm font-medium text-gray-700 mb-2"
+              >Hosted Session ID</label
+            >
+            <div class="flex">
+              <input
+                type="text"
+                id="session-id"
+                class="flex-1 px-3 py-2 border border-gray-300 rounded-l-md focus:outline-none focus:ring-2 focus:ring-green-500"
+                placeholder="cs_test_a1b2c3d4e5f6g7h8i9j0k1l2m3n4o5p6q7r8s9t0"
+              />
+              <button
+                type="button"
+                id="check-hosted-status"
+                class="bg-green-600 text-white px-4 py-2 rounded-r-md hover:bg-green-700"
+              >
+                Check
+              </button>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- PCI Compliance Architecture -->
+      <div class="bg-white rounded-lg shadow-md p-6 mt-8">
+        <h2 class="text-2xl font-semibold mb-4">
+          🔒 PCI DSS Compliance Clarification
+        </h2>
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+          <div>
+            <h3 class="text-lg font-medium mb-2 text-green-700">
+              🎯 Direct (Stripe.js)
+            </h3>
+            <div class="text-sm text-gray-600 space-y-1">
+              <div>
+                🎨 <strong>Custom Payment UI:</strong> Full design control
+              </div>
+              <div>
+                🔒 <strong>SAQ-A Compliance:</strong> Simple self-assessment (no
+                certification)
+              </div>
+              <div>
+                ⚡ <strong>Secure by Design:</strong> Card data never touches
+                your servers
+              </div>
+              <div>
+                🔑 <strong>Tokenized Processing:</strong> Only tokens sent to
+                Goodpass
+              </div>
+            </div>
+          </div>
+          <div>
+            <h3 class="text-lg font-medium mb-2 text-blue-700">
+              🛒 Hosted Checkout
+            </h3>
+            <div class="text-sm text-gray-600 space-y-1">
+              <div>
+                🚀 <strong>Instant Integration:</strong> Minutes to implement
+              </div>
+              <div>
+                🛡️ <strong>Zero PCI Burden:</strong> Automatic compliance
+              </div>
+              <div>
+                🔒 <strong>Complete Isolation:</strong> No card data exposure
+              </div>
+              <div>
+                🌍 <strong>Global Features:</strong> International payment
+                methods
+              </div>
+            </div>
+          </div>
+        </div>
+        <div class="mt-4 p-4 bg-gray-50 rounded">
+          <p class="text-sm text-gray-700">
+            <strong>Architecture Benefit:</strong> Both integration methods
+            reduce PCI compliance burden to the minimum. Choose Stripe.js for
+            Direct control with simple SAQ-A compliance, or Hosted Checkout for
+            fastest integration with zero PCI burden.
+          </p>
+        </div>
+      </div>
+    </div>
+
+    <script>
+      // Configuration
+      const API_BASE_URL = 'http://localhost:3054/v1';
+
+      // Global variables
+      let stripe = null;
+      let cardElement = null;
+      let partnerConfig = null;
+
+      // Utility Functions
+      function showStatus(message, type = 'info') {
+        const container = document.getElementById('status-container');
+        const statusDiv = document.createElement('div');
+        statusDiv.className = `status-message status-${type}`;
+        statusDiv.innerHTML = `
+          <div class="flex justify-between items-start">
+            <div>${message}</div>
+            <button onclick="this.parentElement.parentElement.remove()" class="ml-4 text-xl leading-none">&times;</button>
+          </div>
+        `;
+        container.appendChild(statusDiv);
+
+        if (type === 'success') {
+          setTimeout(() => statusDiv.remove(), 10000);
+        }
+      }
+
+      function setLoading(elementId, isLoading) {
+        const element = document.getElementById(elementId);
+        const button = element.querySelector('button') || element;
+        const text = button.querySelector('[id$="-text"]');
+        const spinner = button.querySelector('[id$="-spinner"]');
+
+        if (isLoading) {
+          button.disabled = true;
+          button.classList.add('loading');
+          if (text) text.classList.add('hidden');
+          if (spinner) spinner.classList.remove('hidden');
+        } else {
+          button.disabled = false;
+          button.classList.remove('loading');
+          if (text) text.classList.remove('hidden');
+          if (spinner) spinner.classList.add('hidden');
+        }
+      }
+
+      async function makeAPICall(endpoint, options = {}) {
+        try {
+          const response = await fetch(`${API_BASE_URL}${endpoint}`, {
+            headers: {
+              'Content-Type': 'application/json',
+              Authorization:
+                'Bearer ' + document.getElementById('api-key').value,
+              ...options.headers,
+            },
+            ...options,
+          });
+
+          const data = await response.json();
+
+          if (!response.ok) {
+            throw new Error(
+              data.error?.message || data.message || `HTTP ${response.status}`
+            );
+          }
+
+          return data;
+        } catch (error) {
+          console.error('API Error:', error);
+          throw error;
+        }
+      }
+
+      // Initialize Stripe for PCI compliant partners
+      function initializeStripe(publishableKey) {
+        if (stripe) {
+          return; // Already initialized
+        }
+
+        stripe = Stripe(publishableKey);
+        const elements = stripe.elements();
+        cardElement = elements.create('card', {
+          style: {
+            base: {
+              fontSize: '16px',
+              color: '#424770',
+              '::placeholder': {
+                color: '#aab7c4',
+              },
+            },
+          },
+        });
+
+        cardElement.mount('#card-element');
+
+        // Handle card element errors
+        cardElement.on('change', ({ error }) => {
+          const displayError = document.getElementById('card-errors');
+          if (error) {
+            displayError.textContent = error.message;
+          } else {
+            displayError.textContent = '';
+          }
+        });
+      }
+
+      // Initialize Stripe with publishable key
+      function initializePayments(config) {
+        const directSection = document.getElementById(
+          'direct-payments-section'
+        );
+        const partnerStatus = document.getElementById('partner-status');
+        const partnerInfo = document.getElementById('partner-info');
+
+        // Show configuration status
+        partnerStatus.style.display = 'block';
+        partnerInfo.innerHTML = `
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <div>
+                <span class="font-medium">Stripe Integration:</span> 
+                <span class="px-2 py-1 text-xs bg-green-100 text-green-800 rounded-full">
+                  Ready
+                </span>
+              </div>
+              <div>
+                <span class="font-medium">Available Methods:</span> 
+                <span class="px-2 py-1 text-xs bg-blue-100 text-blue-800 rounded-full">
+                  Direct + Hosted
+                </span>
+              </div>
+            </div>
+          `;
+
+        // Enable both direct and hosted payments
+        directSection.classList.remove('disabled-section');
+        initializeStripe(config.publishableKey);
+        showStatus(
+          '✅ Payment integration ready! Both Direct (Stripe.js) and Hosted Checkout are available.',
+          'success'
+        );
+      }
+
+      // Fetch partner configuration
+      document
+        .getElementById('fetch-config')
+        .addEventListener('click', async () => {
+          showStatus(
+            'Fetching Stripe publishable key from Goodpass API...',
+            'info'
+          );
+
+          try {
+            // Make real API call to Goodpass
+            const response = await fetch(`${API_BASE_URL}/payments/config`, {
+              headers: {
+                Authorization:
+                  'Bearer ' + document.getElementById('api-key').value,
+                'Content-Type': 'application/json',
+              },
+            });
+
+            if (!response.ok) {
+              if (response.status === 401) {
+                showStatus(
+                  '❌ Invalid API key. Please enter a valid API key.',
+                  'error'
+                );
+                return;
+              }
+              throw new Error(
+                `HTTP ${response.status}: ${response.statusText}`
+              );
+            }
+
+            partnerConfig = await response.json();
+            initializePayments(partnerConfig);
+          } catch (error) {
+            console.error('Error fetching partner configuration:', error);
+          }
+        });
+
+      // Direct Payment Handler (Direct with Stripe.js)
+      document
+        .getElementById('direct-payment-form')
+        .addEventListener('submit', async (event) => {
+          event.preventDefault();
+
+          if (!partnerConfig?.publishableKey) {
+            showStatus(
+              '❌ Please fetch configuration first to enable direct payments',
+              'error'
+            );
+            return;
+          }
+
+          setLoading('direct-payment-form', true);
+
+          try {
+            const orderCode = document.getElementById('order-code').value;
+            const returnUrl = document.getElementById('return-url').value;
+
+            if (!orderCode) {
+              throw new Error('Order code is required');
+            }
+
+            // Create payment method with Stripe.js
+            showStatus('Creating secure payment method token...', 'info');
+            const { error: pmError, paymentMethod } =
+              await stripe.createPaymentMethod({
+                type: 'card',
+                card: cardElement,
+              });
+
+            if (pmError) {
+              throw new Error(pmError.message);
+            }
+
+            // Process payment via Goodpass API
+            showStatus('Processing payment via Goodpass...', 'info');
+            const paymentData = await makeAPICall('/payments/direct/process', {
+              method: 'POST',
+              body: JSON.stringify({
+                orderCode,
+                paymentMethod: {
+                  type: 'card',
+                  token: paymentMethod.id, // Tokenized - no raw card data
+                  cardBrand: paymentMethod.card.brand,
+                  cardCountry: paymentMethod.card.country,
+                  last4: paymentMethod.card.last4,
+                },
+                returnUrl,
+                clientIp: '192.168.1.1',
+                userAgent: navigator.userAgent,
+              }),
+            });
+
+            // Handle payment response
+            if (paymentData.status === 'succeeded') {
+              showStatus(
+                `✅ Payment succeeded! Payment Intent: ${paymentData.paymentIntentId}`,
+                'success'
+              );
+              document.getElementById('payment-intent-id').value =
+                paymentData.paymentIntentId;
+            } else if (paymentData.status === 'requires_action') {
+              showStatus(
+                `🔐 3D Secure authentication required. Redirecting...`,
+                'warning'
+              );
+              document.getElementById('payment-intent-id').value =
+                paymentData.paymentIntentId;
+
+              setTimeout(() => {
+                window.open(paymentData.threeDSecure.url, '_blank');
+              }, 2000);
+            } else if (paymentData.status === 'failed') {
+              throw new Error(paymentData.error?.message || 'Payment failed');
+            } else {
+              showStatus(
+                `Payment status: ${paymentData.status}. Intent ID: ${paymentData.paymentIntentId}`,
+                'info'
+              );
+              document.getElementById('payment-intent-id').value =
+                paymentData.paymentIntentId;
+            }
+          } catch (error) {
+            showStatus(`❌ Direct payment error: ${error.message}`, 'error');
+          } finally {
+            setLoading('direct-payment-form', false);
+          }
+        });
+
+      // Hosted Payment Handler (All Partners)
+      document
+        .getElementById('hosted-payment-form')
+        .addEventListener('submit', async (event) => {
+          event.preventDefault();
+          setLoading('hosted-payment-form', true);
+
+          try {
+            const orderCode = document.getElementById('order-code').value;
+            const successUrl = document.getElementById('success-url').value;
+            const cancelUrl = document.getElementById('cancel-url').value;
+            const customerEmail =
+              document.getElementById('customer-email').value;
+
+            if (!orderCode) {
+              throw new Error('Order code is required');
+            }
+
+            if (!successUrl || !cancelUrl) {
+              throw new Error('Success and cancel URLs are required');
+            }
+
+            // Create checkout session
+            showStatus('Creating secure checkout session...', 'info');
+            const sessionData = await makeAPICall(
+              '/payments/hosted/create-session',
+              {
+                method: 'POST',
+                body: JSON.stringify({
+                  orderCode,
+                  successUrl,
+                  cancelUrl,
+                  customerEmail: customerEmail || undefined,
+                }),
+              }
+            );
+
+            showStatus(
+              `✅ Checkout session created! Redirecting to Stripe...`,
+              'success'
+            );
+            document.getElementById('session-id').value = sessionData.sessionId;
+
+            // Redirect to Stripe Checkout
+            setTimeout(() => {
+              window.open(sessionData.checkoutUrl, '_blank');
+            }, 2000);
+          } catch (error) {
+            showStatus(`❌ Hosted payment error: ${error.message}`, 'error');
+          } finally {
+            setLoading('hosted-payment-form', false);
+          }
+        });
+
+      // Status Checkers
+      document
+        .getElementById('check-direct-status')
+        .addEventListener('click', async () => {
+          const paymentIntentId =
+            document.getElementById('payment-intent-id').value;
+          if (!paymentIntentId) {
+            showStatus('Please enter a payment intent ID', 'error');
+            return;
+          }
+
+          try {
+            const statusData = await makeAPICall(
+              `/payments/direct/status/${paymentIntentId}`
+            );
+            showStatus(
+              `💳 Direct Payment Status: ${statusData.status} | Order: ${statusData.orderCode} | Amount: ${statusData.amount} ${statusData.currency}`,
+              'info'
+            );
+          } catch (error) {
+            showStatus(`❌ Error checking status: ${error.message}`, 'error');
+          }
+        });
+
+      document
+        .getElementById('check-hosted-status')
+        .addEventListener('click', async () => {
+          const sessionId = document.getElementById('session-id').value;
+          if (!sessionId) {
+            showStatus('Please enter a session ID', 'error');
+            return;
+          }
+
+          try {
+            const statusData = await makeAPICall(
+              `/payments/hosted/session/${sessionId}`
+            );
+            showStatus(
+              `🛒 Hosted Payment Status: ${statusData.status} | Order: ${statusData.orderCode} | Amount: ${statusData.amount} ${statusData.currency}`,
+              'info'
+            );
+          } catch (error) {
+            showStatus(`❌ Error checking status: ${error.message}`, 'error');
+          }
+        });
+    </script>
+  </body>
+</html>
