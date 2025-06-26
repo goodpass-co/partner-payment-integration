@@ -48,16 +48,12 @@ curl -X POST http://localhost:5010/api/v1/demo/test-payment \
 
 **Important**: The Goodpass API requires orders to be created in their system before payment processing. The typical workflow is:
 
-1. **Create Order** (via Goodpass Order API or admin panel)
+1. **Create Order** (via Goodpass Order API)
 2. **Initialize Payment** (this sample)
 3. **Handle 3D Secure** (automatic via webhooks)
 4. **Check Payment Status** (this sample)
 
-For testing purposes, you'll need to:
-
-- Create test orders through the Goodpass admin panel, OR
-- Use the Goodpass Order creation API first, OR
-- Contact Goodpass to set up test orders with your partner code
+For testing purposes, you'll need to create test orders through Goodpass Order creation API first
 
 ## 🔑 Authentication
 
@@ -152,29 +148,10 @@ The server logs all API interactions:
 [Partner] Payment status: requires_action, Intent ID: pi_xxx
 ```
 
-## 🆕 Current Implementation Features
-
-- **Organized Endpoints**: Separated direct vs hosted payment flows
-- **Automatic 3D Secure**: 3D Secure handled automatically without manual completion
-- **Real API Integration**: Direct connection to Goodpass Partner API
-- **Comprehensive Testing**: Demo endpoints with multiple test scenarios
-- **Error Handling**: Robust error handling and validation
-- **TypeScript**: Full type safety with comprehensive interfaces
-
-## 📚 Next Steps
-
-1. **Order Integration**: Implement order creation API calls
-2. **Choose Payment Flow**: Decide between direct (Stripe.js) or hosted (Checkout)
-3. **3D Secure Handling**: Implement proper redirect flow in your frontend
-4. **Webhook Integration**: Set up payment status webhooks (recommended)
-5. **Error Handling**: Implement proper error handling for your use cases
-6. **Production Setup**: Switch to production API keys and endpoints
-
 ## 🤝 Support
 
-- Check `test-examples/` folder for detailed integration examples
-- Review `INTEGRATION_SUMMARY.md` for complete implementation details
-- See `DEPLOYMENT_GUIDE.md` for production deployment instructions
+- Check `quick-test.http` for detailed curl examples
+- Review `API-INTEGRATION-SUMMARY.md` for complete implementation details
 
 ---
 
