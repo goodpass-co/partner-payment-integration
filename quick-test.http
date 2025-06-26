@@ -198,55 +198,27 @@ Content-Type: application/json
 
 {
   "scenario": "declined",
-  "orderCode": "GP798B4D8A8D",
-  "paymentMethod": {
-    "type": "card",
-    "token": "pm_card_visa_chargeDeclined",
-    "cardBrand": "visa",
-    "last4": "4242"
-  }
+  "orderCode": "GP798B4D8A8D"
 }
 
 ###
 
-### 13. Get Integration Guide
-GET {{baseUrl}}/demo/integration-guide
+### 13. Check Payment Status
+POST {{baseUrl}}/demo/check-payment-status
+Content-Type: application/json
+
+{
+  "paymentIntentId": "pi_3Re7p601ZCKQr9x50nTsTvMh"
+}
 
 ###
 
-### ================================
-### TROUBLESHOOTING
-### ================================
-### 
-### If hosted payments return sessionId but no checkoutUrl:
-### 1. Check Goodpass API logs for Stripe integration errors
-### 2. Verify Stripe API keys are configured correctly  
-### 3. Ensure products service RabbitMQ connection is working
-### 4. Contact Goodpass API support with sessionId for investigation
-###
-### Expected hosted payment response format:
-### {
-###   "success": true,
-###   "data": {
-###     "sessionId": "cs_test_...",
-###     "url": "https://checkout.stripe.com/pay/cs_test_...",
-###     "order": {
-###       "orderCode": "GP798B4D8A8D",
-###       "totalAmount": 2564980,
-###       "currency": "VND"
-###     }
-###   }
-### }
+### 14. Test Hosted Payment (Stripe Checkout)
+POST {{baseUrl}}/demo/test-hosted-payment
+Content-Type: application/json
 
-### ================================
-### NOTES
-### ================================
-### 
-### Key Changes from v1 to v2:
-### 1. Removed /payments/complete endpoint (webhooks handle completion)
-### 2. Organized endpoints into logical groups:
-###    - /payments/direct/* for Stripe.js integration
-###    - /payments/hosted/* for Stripe Checkout
-###    - /payments/* for shared resources
-### 3. 3D Secure flow now relies on webhooks instead of manual completion
-### 4. Status checking updated to new endpoint paths
+{
+  "orderCode": "GP798B4D8A8D"
+}
+
+###
